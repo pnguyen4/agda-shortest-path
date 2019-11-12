@@ -5,7 +5,7 @@
 
 Phillip Nguyen (just me)
 
-## GitHub ids for all members of your group:
+### GitHub ids for all members of your group:
 
 pnguyen4
 
@@ -16,6 +16,7 @@ Dijkstra's shortest path algorithm
 ### Algorithm or datastructure reference:
 
 https://www-m3.ma.tum.de/foswiki/pub/MN0506/WebHome/dijkstra.pdf
+
 https://en.wikipedia.org/wiki/Dijkstra's_algorithm
 
 ### Theorem(s) you plan to prove:
