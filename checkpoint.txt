@@ -1,0 +1,32 @@
+- What was the starting point from last week
+This was the starting week. 
+
+- What was the goal from last week
+Fill out project proposal, start git repo, configure agda-basics on my system,
+find best way to represent a weighted graph.
+
+- What was accomplished (i.e., starting point for next week)
+Fill out project proposal, start git repo, configure agda-basics on my system.
+
+- Who worked on what
+Everything was just me.
+
+- What are you stuck on
+Find best way to represent a weighted graph.
+
+- What is still left to do
+1. Breadth-first search returns shortest path between two nodes in graph (path length measured by # of edges).
+2. Dijkstra's algorithm (with all edge weights being equal) solution contains shortest path for starting node to every other node.
+3. BFS graph (n1 in graph) (n2 in graph) is contained in DA-no-weights graph node_1 ≡ True
+    or maybe something like:  graph -> node -> list node -> map (BFS graph n) ns ≡ DA graph n
+4. Dijustra's algorithm (with weights considered) yields lowest cost paths between starting node and every other node (measured by sum of weights).
+5. Breadth-first search terminates.
+6. Dijkstra's algorithm without weights terminates.
+6. Dijkstra's algorithm terminates.
+
+- What is the goal for next week
+#1 in my list and find suitable representation for weighted graphs.
+
+- What is your fallback plan if you get stuck on something else unexpected
+Skip weighted graphs and use the implementation from HW10.
+
