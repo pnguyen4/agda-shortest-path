@@ -39,7 +39,7 @@ bfs' G ι₀ ι₁ Q P σ with σ #[ ι₁ ]
 … | I = P
 … | O with length[list] Q
 … | Z = []
-… | S n = {!!} 
+… | S n = foldr (zip ⧺) [] (map bfs' G 
 
 bfs : ∀ { n } → graph[ n ] → idx n → idx n → list (idx n)
 bfs G ι₀ ι₁ = bfs' G ι₀ ι₁ [ ι₀ ] [] (const[vec]< _ > O)
