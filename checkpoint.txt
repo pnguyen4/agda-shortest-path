@@ -1,32 +1,29 @@
 - What was the starting point from last week
-Just the repo and agda-basics set up.
+I was stuck on trying to get the indices of neighboring vertices for a given vertex in adjacency matrix.
+This was the probably the most important feature missing.
 
 - What was the goal from last week
-Work on breadth-first search and choose data structure for weighted graph.
+Get unstuck.
 
 - What was accomplished (i.e., starting point for next week)
-80% done breadth-first search and decided to represent weighted graph as an
-adjacency matrix of integers instead of booleans.
+neighbors function implemented with a few tests provided.
 
 - Who worked on what
 Everything was just me.
 
 - What are you stuck on
-Recursive call for BFS.
+Need to finish my algorithms.
 
 - What is still left to do
 1. Breadth-first search returns shortest path between two nodes in graph (path length measured by # of edges).
 2. Dijkstra's algorithm (with all edge weights being equal) solution contains shortest path for starting node to every other node.
-3. BFS graph (n1 in graph) (n2 in graph) is contained in DA-no-weights graph node_1 ≡ True
-    or maybe something like:  graph -> node -> list node -> map (BFS graph n) ns ≡ DA graph n
-4. Dijustra's algorithm (with weights considered) yields lowest cost paths between starting node and every other node (measured by sum of weights).
-5. Breadth-first search terminates.
-6. Dijkstra's algorithm without weights terminates.
-6. Dijkstra's algorithm terminates.
+3. some shortness proofs
+4-6. removed for time
 
 - What is the goal for next week
-Finish BFS, create formal definition for shortest path, and Start Dijkstra.
+Finish implementation of algorithms (already started)
 
 - What is your fallback plan if you get stuck on something else unexpected
-leave hole in BFS definition and continue onto Dijkstra until I can find help or inspiration.
+I found an alternative way to prove dijkstra's correctness, will probably go with that instead of original plan if
+it ends up being easier. 
 
