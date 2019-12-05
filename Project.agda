@@ -200,9 +200,11 @@ _ = ↯
 
 
 -- Fundamental idea of PROVING BFS finds shortest path:
--- Shortest path to node starting from itself is through itself                (dist = 0)
--- Shortest path to unweigted adjacent node is to that node.                   (dist = 1)
--- shortest path from u to v : (u to neighbor) + (shortest path from neighbor to v)
+--
+-- Shortest path to node starting from itself is through itself                                  [dist = 0]
+-- Shortest path to unweigted adjacent node is to that node.                                     [dist = 1]
+-- shortest path from u to v : (path from u to neighbor of v, with dist d) + (neighbor v to v)   [dist = d+1]
+-- INDUCTION
 
 
 
