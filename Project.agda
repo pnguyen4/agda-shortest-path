@@ -141,19 +141,14 @@ unicode notes:
 
 _ : (𝕚 2 {3}) ≡ S (S Z)
 _ = ↯
-
 _ : (𝕚 1 {3}) ≡ S Z
 _ = ↯
-
 _ : let n = (𝕚 0 {3}) in idxval n ≡ 0
 _ = ↯
-
 _ : let n = (𝕚 2 {3}) in idxval n ≡ 2
 _ = ↯
-
 _ : neighbors [ I , O , I ] ≡ [ Z , S (S Z) ]
 _ = ↯
-
 _ : filter-list [ (𝕚 0 {7}) , (𝕚 1 {7}) ] [ (𝕚 0 {7}) ] ≡ [ (𝕚 1 {7}) ]
 _ = ↯
 _ : lookup (𝕚 1 {7}) [ (𝕚 0 {7}) , (𝕚 1 {7}) ] ≡ I
@@ -182,7 +177,6 @@ pass#     queue        result       seenlist += neighbors
 4:        [4]          [0,1,2,3]    [0,1,2,3,4]
 5:        []           [0,1,3,3,4]  [0,1,2,3,4]
 -}
-
 _ : bfs-traverse undirectedgraph1 Z ≡ [ Z , S Z , S(S Z) , S(S(S Z)) , S(S(S(S Z))) ]
 _ = ↯
 
@@ -208,6 +202,5 @@ pass#     queue        result            seenlist
 6:        [6]          [0,1,2,3,4,5]     [0,1,2,3,4,5,6]
 7:        []           [0,1,2,3,4,5,6]   [0,1,2,3,4,5,6]
 -}
-
 _ : bfs-traverse tree1 Z ≡ [ Z , S Z , S(S Z), S(S(S Z)), S(S(S(S Z))), S(S(S(S(S Z)))), S(S(S(S(S(S Z))))) ]
 _ = ↯
