@@ -14,23 +14,28 @@ lemma2 : ∀ (n : ℕ) → ∀ (i : idx n) → idxval i <? S n ≡ [<]
 lemma2 (S x) Z = ↯
 lemma2 (S x) (S i) = lemma2 x i
 
+lemma3 : ∀ (n : ℕ) → ∀ (i : idx n) → idxval i <? n ≡ [<]
+lemma3 Z ()
+lemma3 (S n) Z = ↯
+lemma3 (S n) (S i) = lemma3 n i
+
 -- return ids of adjancent vertices --
 {-# TERMINATING #-}
 neighbors : ∀ {n : ℕ} → vec[ S n ] 𝔹 → list (idx (S n))
 neighbors {n} v = neighbors' v (𝕚 n {S n} {{lemma1 n}}) []
   where
-  red : ∀ {n : ℕ} → idx (S n) → idx (S n)
-  red Z = Z
-  red {n} (S Z) = (𝕚 Z {S n})
-  red {n} (S m) = (𝕚 (idxval m) {S n} {{lemma2 n m}})
+  reduce : ∀ {n : ℕ} → idx (S n) → idx (S n)
+  reduce Z = Z
+  reduce {n} (S Z) = (𝕚 Z {S n})
+  reduce {n} (S m) = (𝕚 (idxval m) {S n} {{lemma2 n m}})
 
   neighbors' : ∀ {n : ℕ} → vec[ S n ] 𝔹 → idx (S n) → list (idx (S n)) → list (idx (S n))
   neighbors' v Z l with v #[ Z ]
   … | I = Z ∷ l
   … | O = l
   neighbors' {n} v m l with v #[ m ]
-  … | I = neighbors' v (red m) (m ∷ l)
-  … | O = neighbors' v (red m) l
+  … | I = neighbors' v (reduce m) (m ∷ l)
+  … | O = neighbors' v (reduce m) l
 
 lookup : ∀ {n : ℕ} → idx n → list (idx n) → 𝔹
 lookup x [] = O
@@ -44,21 +49,50 @@ filter-list (x ∷ xs) ys with lookup x ys
 … | I = filter-list xs ys
 … | O = x ∷ filter-list xs ys
 
-{-# TERMINATING #-}
-bfs-traverse' :
-  ∀ {n : ℕ}
-  → graph[ S n ]                          -- G: graph represented as adjacency matrix
-  → list (idx (S n)) → list (idx (S n))   -- Q: processing queue, L: search result list
-  → list (idx (S n))                      -- σ: seen list to detect cycles
-  → list (idx (S n))
-bfs-traverse' G Q L σ with Q
-… | [] = L
-… | x ∷ xs with filter-list (neighbors (G #[ x ])) σ
-… | [] = bfs-traverse' G xs (L ⧺ [ x ]) σ
-… | ys = bfs-traverse' G (xs ⧺ ys) (L ⧺ [ x ]) (σ ⧺ ys)
 
+{-# TERMINATING #-}
 bfs-traverse : ∀ { n } → graph[ S n ] → idx (S n) → list (idx (S n))
 bfs-traverse G ι₀ = bfs-traverse' G [ ι₀ ] [] [ ι₀ ]
+  where
+  bfs-traverse' :
+    ∀ {n : ℕ}
+    → graph[ S n ]                          -- G: graph represented as adjacency matrix
+    → list (idx (S n)) → list (idx (S n))   -- Q: processing queue, L: search result list
+    → list (idx (S n))                      -- σ: seen list to avoid cycles
+    → list (idx (S n))
+  bfs-traverse' G Q L σ with Q
+  … | [] = L
+  … | x ∷ xs with filter-list (neighbors (G #[ x ])) σ
+  … | [] = bfs-traverse' G xs (L ⧺ [ x ]) σ
+  … | ys = bfs-traverse' G (xs ⧺ ys) (L ⧺ [ x ]) (σ ⧺ ys)
+
+{-- Breadth-First Search : returns shortest path between two nodes in graph --}
+{-# TERMINATING #-}
+bfs : ∀ {n : ℕ} → graph[ S n ] → idx (S n) → idx (S n) → list ℕ
+bfs {n} G ι₀ ι₁ = let prev = bfs' G ι₀ ι₁ [ ι₀ ] [ ι₀ ] (const[vec]< S n > ι₁)
+                  in return-path prev ι₁ []
+ where
+ update-prevs : ∀ {n : ℕ} → vec[ S n ] (idx (S n)) → idx (S n) → list (idx (S n)) → vec[ S n ] (idx (S n))
+ update-prevs ρ x [] = ρ
+ update-prevs {n} ρ x (y ∷ ys) = let i = (𝕚 (idxval x) {(S n)} {{lemma3 (S n) x}})
+                                 in update-prevs (ρ #[ y ↦ i ]) x ys
+ bfs' :
+   ∀ {n}
+   → graph[ S n ]                         -- G: graph represented as adjacency matrix
+   → idx (S n) → idx (S n)                -- ι₀: starting node ID, ι₁: target node ID
+   → list (idx (S n)) → list (idx (S n))  -- Q: processing queue, σ: seen list
+   → vec[ S n ] (idx (S n))               -- ρ: previous nodes list, default value is target
+   → vec[ S n ] (idx (S n))
+ bfs' G ι₀ ι₁ Q σ ρ with Q
+ … | [] = ρ
+ … | x ∷ xs with filter-list (neighbors (G #[ x ])) σ
+ … | [] = bfs' G ι₀ ι₁ xs σ ρ
+ … | ys = bfs' G ι₀ ι₁ (xs ⧺ ys) (σ ⧺ ys) (update-prevs ρ x ys)
+
+ return-path : vec[ S n ] (idx (S n)) → idx (S n) → list ℕ → list ℕ
+ return-path prev ι res with idxval(prev #[ ι ]) ≡? idxval ι₁
+ … | I = res
+ … | O = return-path prev (prev #[ ι ]) (idxval (prev #[ ι ]) ∷ res)
 
 {--  FUN STUFF, PUT ASIDE FOR NOW
 -- dijkstra work
@@ -105,25 +139,6 @@ zip f x [] = x
 zip f [] y = y
 zip f (x ∷ xs) (y ∷ ys) = f x y ∷ zip f xs ys
 
--- Breadth-first search returns shortest path between two nodes in graph.
--- (path length measured by # of edges)
---
--- Function returns path when target found in seenlist or emptylist when
--- queue is empty due to node has no child and target not in seenlist.
-bfs' :
-  ∀ {n}
-  → graph[ n ]                  -- G: graph represented as adjacency matrix
-  → idx n → idx n               -- ι₀: starting node ID, ι₁: target node ID
-  → list (idx n) → list (idx n) -- Q: processing queue, P: pending path
-  → vec[ n ] 𝔹                  -- σ: seen list to detect cycle
-  → list (idx n)
-bfs' G ι₀ ι₁ Q P σ with σ #[ ι₁ ]
-… | I = {!!}
-… | O = {!!}
-
-bfs : ∀ { n } → graph[ n ] → idx n → idx n → list (idx n)
-bfs G ι₀ ι₁ = bfs' G ι₀ ι₁ [ ι₀ ] [] (const[vec]< _ > O)
-
 tolist : ∀ {A : Set} {n} → vec[ n ] A → list A
 tolist [] = []
 tolist (x ∷ xs) = x ∷ tolist xs
@@ -134,11 +149,7 @@ head[vec] (x ∷ xs) = x
 tail[vec] : ∀ {A : Set} {n} → vec[ S n ] A → vec[ n ] A
 tail[vec] (x ∷ xs) = xs
 
-{-
-unicode notes:
-  ↦ is \r|-
--}
-
+{-- Miscellaneous Tests --}
 _ : (𝕚 2 {3}) ≡ S (S Z)
 _ = ↯
 _ : (𝕚 1 {3}) ≡ S Z
@@ -159,15 +170,17 @@ _ : neighbors [ O , I , I , O , O , O , O ]  ≡ [ S Z , S(S Z) ]
 _ = ↯
 _ : filter-list (neighbors [ I , O , O , I , I , O , O ] ) [ Z ] ≡ [ S(S(S Z)) , S(S(S(S Z))) ]
 _ = ↯
+_ : const[vec]< 3 > (𝕚 3 {4}) ≡ [ S(S(S Z)) , S(S(S Z)) , S(S(S Z)) ]
+_ = ↯
 
 undirectedgraph1 : graph[ 5 ]
 undirectedgraph1 = [ [ O , I , I , O , O ]
-                 , [ I , O , I , I , O ]
-                 , [ I , I , O , I , I ]
-                 , [ O , I , I , O , I ]
-                 , [ O , O , I , I , O ]
-                 ]
-{-
+                   , [ I , O , I , I , O ]
+                   , [ I , I , O , I , I ]  --    (1)-(3)
+                   , [ O , I , I , O , I ]  --    / \ / \
+                   , [ O , O , I , I , O ]  --  (0)-(2)-(4)
+                   ]
+{- traversal logic
 input: undirectedgraph1 0
 pass#     queue        result       seenlist += neighbors
 0:        [0]          []           [0]
@@ -179,18 +192,21 @@ pass#     queue        result       seenlist += neighbors
 -}
 _ : bfs-traverse undirectedgraph1 Z ≡ [ Z , S Z , S(S Z) , S(S(S Z)) , S(S(S(S Z))) ]
 _ = ↯
+-- note that path 1-2 to 4 is equal in distance to path 1-3
+-- but lower numbered nodes get precedence in this implementation.
+_ : bfs undirectedgraph1 (S Z) (S(S(S(S Z)))) ≡ [ 1 , 2 ]
+_ = ↯
 
 tree1 : graph[ 7 ]
 tree1 = [ [ O , I , I , O , O , O , O ]
-        , [ I , O , O , I , I , O , O ]
-        , [ I , O , O , O , O , I , I ]
-        , [ O , I , O , O , O , O , O ]
-        , [ O , I , O , O , O , O , O ]
-        , [ O , O , I , O , O , O , O ]
-        , [ O , O , I , O , O , O , O ]
+        , [ I , O , O , I , I , O , O ]    --          (0)
+        , [ I , O , O , O , O , I , I ]    --         /   \
+        , [ O , I , O , O , O , O , O ]    --        /     \
+        , [ O , I , O , O , O , O , O ]    --     (1)       (2)
+        , [ O , O , I , O , O , O , O ]    --    /   \     /   \
+        , [ O , O , I , O , O , O , O ]    --  (3)   (4) (5)   (6)
         ]
-
-{-
+{- traversal logic
 input: tree1, 0
 pass#     queue        result            seenlist
 0:        [0]          []                [0]
@@ -203,4 +219,27 @@ pass#     queue        result            seenlist
 7:        []           [0,1,2,3,4,5,6]   [0,1,2,3,4,5,6]
 -}
 _ : bfs-traverse tree1 Z ≡ [ Z , S Z , S(S Z), S(S(S Z)), S(S(S(S Z))), S(S(S(S(S Z)))), S(S(S(S(S(S Z))))) ]
+_ = ↯
+
+-- find path from 0 to 6
+_ : bfs tree1 Z (S(S(S(S(S(S Z)))))) ≡ [ 0 , 2 ]
+_ = ↯
+-- find path from 0 to 3
+_ : bfs tree1 Z (S(S(S Z))) ≡ [ 0 , 1 ]
+_ = ↯
+
+undirectedgraph2 : graph[ 7 ]
+undirectedgraph2 = [ [ O , I , O , O , O , O , O ]
+                   , [ I , O , I , O , I , O , O ]  --
+                   , [ O , I , O , I , O , O , O ]  --  (6)
+                   , [ O , O , I , O , O , I , O ]  --
+                   , [ O , I , O , O , O , I , O ]  --        (2)-(3)
+                   , [ O , O , O , I , I , O , O ]  --        /     \
+                   , [ O , O , O , O , O , O , O ]  --  (0)-(1)-(4)-(5)
+                   ]
+-- path between 0 and 6 doesn't exist, 6 has no connections
+_ : bfs undirectedgraph2 Z (S(S(S(S(S(S Z)))))) ≡ []
+_ = ↯
+-- path between 0 and 5 exists, does not return 0-1-2-3
+_ : bfs undirectedgraph2 Z (S(S(S(S(S Z))))) ≡ [ 0 , 1 , 4 ]
 _ = ↯
