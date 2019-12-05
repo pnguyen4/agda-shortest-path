@@ -57,11 +57,11 @@ bfs-traverse G ι₀ = bfs-traverse' G [ ι₀ ] [] [ ι₀ ]
   where
   bfs-traverse' :
     ∀ {n : ℕ}
-    → graph[ S n ]                          -- G: graph represented as adjacency matrix
-    → list (idx (S n)) → list (idx (S n))   -- Q: processing queue, L: search result list
-    → list (idx (S n))                      -- σ: seen list to avoid cycles
+    → graph[ S n ]                         -- G: graph represented as adjacency matrix
+    → list (idx (S n)) → list (idx (S n))  -- Q: processing queue, L: search result list
+    → list (idx (S n))                     -- σ: seen list to avoid cycles
     → list (idx (S n))
-  {- Terminates when queue is empty -}
+  {- Terminates when queue is empty, that is, when all possible neighbors are seen -}
   bfs-traverse' G Q L σ with Q
   … | [] = L
   … | x ∷ xs with filter-list (neighbors (G #[ x ])) σ
@@ -79,6 +79,7 @@ bfs {n} G ι₀ ι₁ = let prev = bfs' G ι₀ ι₁ [ ι₀ ] [ ι₀ ] (const
   update-prevs ρ x [] = ρ
   update-prevs {n} ρ x (y ∷ ys) = let i = (𝕚 (idxval x) {(S n)} {{lemma3 (S n) x}})
                                   in update-prevs (ρ #[ y ↦ i ]) x ys
+  {- Terminates when queue is empty, that is, when all possible neighbors are seen -}
   bfs' :
     ∀ {n}
     → graph[ S n ]                         -- G: graph represented as adjacency matrix
@@ -86,19 +87,21 @@ bfs {n} G ι₀ ι₁ = let prev = bfs' G ι₀ ι₁ [ ι₀ ] [ ι₀ ] (const
     → list (idx (S n)) → list (idx (S n))  -- Q: processing queue, σ: seen list
     → vec[ S n ] (idx (S n))               -- ρ: previous nodes list, default value is target
     → vec[ S n ] (idx (S n))
-  {- Terminates when queue is empty -}
   bfs' G ι₀ ι₁ Q σ ρ with Q
   … | [] = ρ
   … | x ∷ xs with filter-list (neighbors (G #[ x ])) σ
   … | [] = bfs' G ι₀ ι₁ xs σ ρ
   … | ys = bfs' G ι₀ ι₁ (xs ⧺ ys) (σ ⧺ ys) (update-prevs ρ x ys)
 
+  -- Terminates when prev is target, aka when source is found. 
+  -- Value of prev[source] will always be target because source never gets passed into 
+  -- update-prevs due to the fact that seenlist starts with source and thus gets filtered. 
   return-path : vec[ S n ] (idx (S n)) → idx (S n) → list ℕ → list ℕ
   return-path prev ι res with idxval(prev #[ ι ]) ≡? idxval ι₁
   … | O = return-path prev (prev #[ ι ]) (idxval (prev #[ ι ]) ∷ res)
   … | I with idxval ι₀ ≡? idxval ι₁ | res
-  … | O | [] = res                        -- path to node not found
-  … | O | xs = res ⧺ [ idxval ι₁ ]        -- path found
+  … | O | [] = res                        -- path to node does not exist
+  … | O | xs = res ⧺ [ idxval ι₁ ]        -- path found from ι₀ to ι₁
   … | I | _ = res ⧺ [ idxval ι₁ ]         -- path found, search for self
 
 
