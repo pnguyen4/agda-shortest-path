@@ -49,9 +49,10 @@ filter-list (x ∷ xs) ys with lookup x ys
 … | I = filter-list xs ys
 … | O = x ∷ filter-list xs ys
 
-
+{-- BFS Traverse : returns list of nodes ordered by first seen to last --}
+--------------------------------------------------------------------------
 {-# TERMINATING #-}
-bfs-traverse : ∀ { n } → graph[ S n ] → idx (S n) → list (idx (S n))
+bfs-traverse : ∀ {n : ℕ} → graph[ S n ] → idx (S n) → list (idx (S n))
 bfs-traverse G ι₀ = bfs-traverse' G [ ι₀ ] [] [ ι₀ ]
   where
   bfs-traverse' :
@@ -67,6 +68,7 @@ bfs-traverse G ι₀ = bfs-traverse' G [ ι₀ ] [] [ ι₀ ]
   … | ys = bfs-traverse' G (xs ⧺ ys) (L ⧺ [ x ]) (σ ⧺ ys)
 
 {-- Breadth-First Search : returns shortest path between two nodes in graph --}
+-------------------------------------------------------------------------------
 {-# TERMINATING #-}
 bfs : ∀ {n : ℕ} → graph[ S n ] → idx (S n) → idx (S n) → list ℕ
 bfs {n} G ι₀ ι₁ = let prev = bfs' G ι₀ ι₁ [ ι₀ ] [ ι₀ ] (const[vec]< S n > ι₁)
@@ -91,11 +93,125 @@ bfs {n} G ι₀ ι₁ = let prev = bfs' G ι₀ ι₁ [ ι₀ ] [ ι₀ ] (const
 
  return-path : vec[ S n ] (idx (S n)) → idx (S n) → list ℕ → list ℕ
  return-path prev ι res with idxval(prev #[ ι ]) ≡? idxval ι₁
- … | I = res
  … | O = return-path prev (prev #[ ι ]) (idxval (prev #[ ι ]) ∷ res)
+ … | I with idxval ι₀ ≡? idxval ι₁ | res
+ … | O | [] = res                        -- path to node not found
+ … | O | xs = res ⧺ [ idxval ι₁ ]        -- path found
+ … | I | _ = res ⧺ [ idxval ι₁ ]         -- path found, search for self
+
+
+{-- Miscellaneous Tests --}
+_ : (𝕚 2 {3}) ≡ S (S Z)
+_ = ↯
+_ : (𝕚 1 {3}) ≡ S Z
+_ = ↯
+_ : let n = (𝕚 0 {3}) in idxval n ≡ 0
+_ = ↯
+_ : let n = (𝕚 2 {3}) in idxval n ≡ 2
+_ = ↯
+_ : neighbors [ I , O , I ] ≡ [ Z , S (S Z) ]
+_ = ↯
+_ : filter-list [ (𝕚 0 {7}) , (𝕚 1 {7}) ] [ (𝕚 0 {7}) ] ≡ [ (𝕚 1 {7}) ]
+_ = ↯
+_ : lookup (𝕚 1 {7}) [ (𝕚 0 {7}) , (𝕚 1 {7}) ] ≡ I
+_ = ↯
+_ : lookup (𝕚 5 {7}) [ (𝕚 0 {7}) , (𝕚 1 {7}) ] ≡ O
+_ = ↯
+_ : neighbors [ O , I , I , O , O , O , O ]  ≡ [ S Z , S(S Z) ]
+_ = ↯
+_ : filter-list (neighbors [ I , O , O , I , I , O , O ] ) [ Z ] ≡ [ S(S(S Z)) , S(S(S(S Z))) ]
+_ = ↯
+_ : const[vec]< 3 > (𝕚 3 {4}) ≡ [ S(S(S Z)) , S(S(S Z)) , S(S(S Z)) ]
+_ = ↯
+
+{-- BFS Traverse and Search Demo --}
+------------------------------------
+tree1 : graph[ 7 ]
+tree1 = [ [ O , I , I , O , O , O , O ]
+        , [ I , O , O , I , I , O , O ]    --          (0)
+        , [ I , O , O , O , O , I , I ]    --         /   \
+        , [ O , I , O , O , O , O , O ]    --        /     \
+        , [ O , I , O , O , O , O , O ]    --     (1)       (2)
+        , [ O , O , I , O , O , O , O ]    --    /   \     /   \
+        , [ O , O , I , O , O , O , O ]    --  (3)   (4) (5)   (6)
+        ]
+{- traversal logic
+input: tree1, 0
+pass#     queue        result            seenlist
+0:        [0]          []                [0]
+1:        [1,2]        [0]               [0,1,2]
+2:        [2,3,4]      [0,1]             [0,1,2,3,4]
+3:        [3,4,5,6]    [0,1,2]           [0,1,2,3,4,5,6]
+4:        [4,5,6]      [0,1,2,3]         [0,1,2,3,4,5,6]
+5:        [5,6]        [0,1,2,3,4]       [0,1,2,3,4,5,6]
+6:        [6]          [0,1,2,3,4,5]     [0,1,2,3,4,5,6]
+7:        []           [0,1,2,3,4,5,6]   [0,1,2,3,4,5,6]
+-}
+_ : bfs-traverse tree1 Z ≡ [ (𝕚 0) , (𝕚 1) , (𝕚 2) , (𝕚 3) , (𝕚 4) , (𝕚 5) , (𝕚 6) ]
+_ = ↯
+-- find path from 0 to 6
+_ : bfs tree1 Z (𝕚 6) ≡ [ 0 , 2 , 6 ]
+_ = ↯
+-- find path from 0 to itself
+_ : bfs tree1 Z Z ≡ [ 0 ]
+_ = ↯
+
+undirectedgraph1 : graph[ 5 ]
+undirectedgraph1 = [ [ O , I , I , O , O ]
+                   , [ I , O , I , I , O ]
+                   , [ I , I , O , I , I ]  --    (1)-(3)
+                   , [ O , I , I , O , I ]  --    / \ / \
+                   , [ O , O , I , I , O ]  --  (0)-(2)-(4)
+                   ]
+{- traversal logic
+input: undirectedgraph1 0
+pass#     queue        result       seenlist
+0:        [0]          []           [0]
+1:        [1,2]        [0]          [0,1,2]
+2:        [2,3]        [0,1]        [0,1,2,3]
+3:        [3,4]        [0,1,2]      [0,1,2,3,4]
+4:        [4]          [0,1,2,3]    [0,1,2,3,4]
+5:        []           [0,1,3,3,4]  [0,1,2,3,4]
+-}
+_ : bfs-traverse undirectedgraph1 Z ≡ [ (𝕚 0) , (𝕚 1) , (𝕚 2) , (𝕚 3) , (𝕚 4) ]
+_ = ↯
+-- note that path 1-2-4 is equal in length to path 1-3-4 but
+-- lower numbered nodes get precedence in this implementation.
+_ : bfs undirectedgraph1 (𝕚 1) (𝕚 4) ≡ [ 1 , 2 , 4 ]
+_ = ↯
+
+undirectedgraph2 : graph[ 7 ]
+undirectedgraph2 = [ [ O , I , O , O , O , O , O ]
+                   , [ I , O , I , O , I , O , O ]  --
+                   , [ O , I , O , I , O , O , O ]  --  (6) <- poor guy is all alone...
+                   , [ O , O , I , O , O , I , O ]  --
+                   , [ O , I , O , O , O , I , O ]  --        (2)-(3)
+                   , [ O , O , O , I , I , O , O ]  --        /     \
+                   , [ O , O , O , O , O , O , O ]  --  (0)-(1)-(4)-(5)
+                   ]
+-- path between 0 and 6 doesn't exist, 6 has no connections
+_ : bfs undirectedgraph2 Z (𝕚 6) ≡ []
+_ = ↯
+-- path between 0 and 5 exists, does not return 0-1-2-3
+_ : bfs undirectedgraph2 Z (𝕚 5) ≡ [ 0 , 1 , 4 , 5 ]
+_ = ↯
+
+
+
+
+-- Fundamental idea of PROVING BFS finds shortest path:
+-- Shortest path to node starting from itself is through itself                (dist = 0)
+-- Shortest path to unweigted adjacent node is to that node.                   (dist = 1)
+-- shortest path from u to v : (u to neighbor) + (shortest path from neighbor to v)
+
+
+
+
+
+
 
 {--  FUN STUFF, PUT ASIDE FOR NOW
--- dijkstra work
+-- standard (weighted) dijkstra
 min : ∀ {n : ℕ} → list (idx n) → (idx n) → (idx n) → (idx n)
 min l x y with idxval x <? idxval y
 … | [<] = x
@@ -133,113 +249,3 @@ dijkstra' ι₀ G dist R = {!!}
 --dijkstra : ∀ {n} → idx n → Dgraph[ n ] → vec[ n ] ℕ
 --dijkstra {n} ι₀ G = dijkstra' ι₀ G (G #[ ι₀ ]) []
 --}
-
-zip : ∀ {A : Set} → (A → A → A) → list A → list A → list A
-zip f x [] = x
-zip f [] y = y
-zip f (x ∷ xs) (y ∷ ys) = f x y ∷ zip f xs ys
-
-tolist : ∀ {A : Set} {n} → vec[ n ] A → list A
-tolist [] = []
-tolist (x ∷ xs) = x ∷ tolist xs
-
-head[vec] : ∀ {A : Set} {n} → vec[ S n ] A → A
-head[vec] (x ∷ xs) = x
-
-tail[vec] : ∀ {A : Set} {n} → vec[ S n ] A → vec[ n ] A
-tail[vec] (x ∷ xs) = xs
-
-{-- Miscellaneous Tests --}
-_ : (𝕚 2 {3}) ≡ S (S Z)
-_ = ↯
-_ : (𝕚 1 {3}) ≡ S Z
-_ = ↯
-_ : let n = (𝕚 0 {3}) in idxval n ≡ 0
-_ = ↯
-_ : let n = (𝕚 2 {3}) in idxval n ≡ 2
-_ = ↯
-_ : neighbors [ I , O , I ] ≡ [ Z , S (S Z) ]
-_ = ↯
-_ : filter-list [ (𝕚 0 {7}) , (𝕚 1 {7}) ] [ (𝕚 0 {7}) ] ≡ [ (𝕚 1 {7}) ]
-_ = ↯
-_ : lookup (𝕚 1 {7}) [ (𝕚 0 {7}) , (𝕚 1 {7}) ] ≡ I
-_ = ↯
-_ : lookup (𝕚 5 {7}) [ (𝕚 0 {7}) , (𝕚 1 {7}) ] ≡ O
-_ = ↯
-_ : neighbors [ O , I , I , O , O , O , O ]  ≡ [ S Z , S(S Z) ]
-_ = ↯
-_ : filter-list (neighbors [ I , O , O , I , I , O , O ] ) [ Z ] ≡ [ S(S(S Z)) , S(S(S(S Z))) ]
-_ = ↯
-_ : const[vec]< 3 > (𝕚 3 {4}) ≡ [ S(S(S Z)) , S(S(S Z)) , S(S(S Z)) ]
-_ = ↯
-
-undirectedgraph1 : graph[ 5 ]
-undirectedgraph1 = [ [ O , I , I , O , O ]
-                   , [ I , O , I , I , O ]
-                   , [ I , I , O , I , I ]  --    (1)-(3)
-                   , [ O , I , I , O , I ]  --    / \ / \
-                   , [ O , O , I , I , O ]  --  (0)-(2)-(4)
-                   ]
-{- traversal logic
-input: undirectedgraph1 0
-pass#     queue        result       seenlist += neighbors
-0:        [0]          []           [0]
-1:        [1,2]        [0]          [0,1,2]
-2:        [2,3]        [0,1]        [0,1,2,3]
-3:        [3,4]        [0,1,2]      [0,1,2,3,4]
-4:        [4]          [0,1,2,3]    [0,1,2,3,4]
-5:        []           [0,1,3,3,4]  [0,1,2,3,4]
--}
-_ : bfs-traverse undirectedgraph1 Z ≡ [ Z , S Z , S(S Z) , S(S(S Z)) , S(S(S(S Z))) ]
-_ = ↯
--- note that path 1-2 to 4 is equal in distance to path 1-3
--- but lower numbered nodes get precedence in this implementation.
-_ : bfs undirectedgraph1 (S Z) (S(S(S(S Z)))) ≡ [ 1 , 2 ]
-_ = ↯
-
-tree1 : graph[ 7 ]
-tree1 = [ [ O , I , I , O , O , O , O ]
-        , [ I , O , O , I , I , O , O ]    --          (0)
-        , [ I , O , O , O , O , I , I ]    --         /   \
-        , [ O , I , O , O , O , O , O ]    --        /     \
-        , [ O , I , O , O , O , O , O ]    --     (1)       (2)
-        , [ O , O , I , O , O , O , O ]    --    /   \     /   \
-        , [ O , O , I , O , O , O , O ]    --  (3)   (4) (5)   (6)
-        ]
-{- traversal logic
-input: tree1, 0
-pass#     queue        result            seenlist
-0:        [0]          []                [0]
-1:        [1,2]        [0]               [0,1,2]
-2:        [2,3,4]      [0,1]             [0,1,2,3,4]
-3:        [3,4,5,6]    [0,1,2]           [0,1,2,3,4,5,6]
-4:        [4,5,6]      [0,1,2,3]         [0,1,2,3,4,5,6]
-5:        [5,6]        [0,1,2,3,4]       [0,1,2,3,4,5,6]
-6:        [6]          [0,1,2,3,4,5]     [0,1,2,3,4,5,6]
-7:        []           [0,1,2,3,4,5,6]   [0,1,2,3,4,5,6]
--}
-_ : bfs-traverse tree1 Z ≡ [ Z , S Z , S(S Z), S(S(S Z)), S(S(S(S Z))), S(S(S(S(S Z)))), S(S(S(S(S(S Z))))) ]
-_ = ↯
-
--- find path from 0 to 6
-_ : bfs tree1 Z (S(S(S(S(S(S Z)))))) ≡ [ 0 , 2 ]
-_ = ↯
--- find path from 0 to 3
-_ : bfs tree1 Z (S(S(S Z))) ≡ [ 0 , 1 ]
-_ = ↯
-
-undirectedgraph2 : graph[ 7 ]
-undirectedgraph2 = [ [ O , I , O , O , O , O , O ]
-                   , [ I , O , I , O , I , O , O ]  --
-                   , [ O , I , O , I , O , O , O ]  --  (6)
-                   , [ O , O , I , O , O , I , O ]  --
-                   , [ O , I , O , O , O , I , O ]  --        (2)-(3)
-                   , [ O , O , O , I , I , O , O ]  --        /     \
-                   , [ O , O , O , O , O , O , O ]  --  (0)-(1)-(4)-(5)
-                   ]
--- path between 0 and 6 doesn't exist, 6 has no connections
-_ : bfs undirectedgraph2 Z (S(S(S(S(S(S Z)))))) ≡ []
-_ = ↯
--- path between 0 and 5 exists, does not return 0-1-2-3
-_ : bfs undirectedgraph2 Z (S(S(S(S(S Z))))) ≡ [ 0 , 1 , 4 ]
-_ = ↯
