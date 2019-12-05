@@ -2,28 +2,28 @@ module Project where
 open import Basics002
 
 -- boilerplate --
-top : ∀ {n : ℕ} → idx n → ℕ
-top Z = 0
-top (S i) = 1 + top i
+idxval : ∀ {n : ℕ} → idx n → ℕ
+idxval Z = 0
+idxval (S i) = 1 + idxval i
 
 lemma1 : ∀ (n : ℕ) → n <? S n ≡ [<]
 lemma1 Z = ↯
 lemma1 (S n) = lemma1 n
 
-lemma2 : ∀ (n : ℕ) → ∀ (i : idx n) → top i <? S n ≡ [<]
+lemma2 : ∀ (n : ℕ) → ∀ (i : idx n) → idxval i <? S n ≡ [<]
 lemma2 (S x) Z = ↯
 lemma2 (S x) (S i) = lemma2 x i
-
-red : ∀ {n : ℕ} → idx (S n) → idx (S n)
-red Z = Z
-red {n} (S Z) = (𝕚 Z {S n})
-red {n} (S m) = (𝕚 (top m) {S n} {{lemma2 n m}})
 
 -- return ids of adjancent vertices --
 {-# TERMINATING #-}
 neighbors : ∀ {n : ℕ} → vec[ S n ] 𝔹 → list (idx (S n))
 neighbors {n} v = neighbors' v (𝕚 n {S n} {{lemma1 n}}) []
   where
+  red : ∀ {n : ℕ} → idx (S n) → idx (S n)
+  red Z = Z
+  red {n} (S Z) = (𝕚 Z {S n})
+  red {n} (S m) = (𝕚 (idxval m) {S n} {{lemma2 n m}})
+
   neighbors' : ∀ {n : ℕ} → vec[ S n ] 𝔹 → idx (S n) → list (idx (S n)) → list (idx (S n))
   neighbors' v Z l with v #[ Z ]
   … | I = Z ∷ l
@@ -34,35 +34,36 @@ neighbors {n} v = neighbors' v (𝕚 n {S n} {{lemma1 n}}) []
 
 lookup : ∀ {n : ℕ} → idx n → list (idx n) → 𝔹
 lookup x [] = O
-lookup x (y ∷ ys) with top x ≡? top y
+lookup x (y ∷ ys) with idxval x ≡? idxval y
 … | I = I
 … | O = lookup x ys
 
-filter-list : ∀ {n : ℕ} → list (idx n) → list (idx n) → list (idx n) 
-filter-list [] ys = ys
+filter-list : ∀ {n : ℕ} → list (idx n) → list (idx n) → list (idx n)
+filter-list [] ys = []
 filter-list (x ∷ xs) ys with lookup x ys
-… | I = x ∷ filter-list xs ys
-… | O = filter-list xs ys
+… | I = filter-list xs ys
+… | O = x ∷ filter-list xs ys
 
 {-# TERMINATING #-}
-bfs-traversal' :
+bfs-traverse' :
   ∀ {n : ℕ}
   → graph[ S n ]                          -- G: graph represented as adjacency matrix
   → list (idx (S n)) → list (idx (S n))   -- Q: processing queue, L: search result list
-  → list (idx (S n))                      -- σ: seen list to detect cycle
-bfs-traversal' G Q L with Q
+  → list (idx (S n))                      -- σ: seen list to detect cycles
+  → list (idx (S n))
+bfs-traverse' G Q L σ with Q
 … | [] = L
-… | x ∷ xs with filter-list L (neighbors (G #[ x ]))
-… | [] = bfs-traversal' G xs (L ⧺ [ x ])
-… | ys = bfs-traversal' G (xs ⧺ ys) (L ⧺ [ x ])
+… | x ∷ xs with filter-list (neighbors (G #[ x ])) σ
+… | [] = bfs-traverse' G xs (L ⧺ [ x ]) σ
+… | ys = bfs-traverse' G (xs ⧺ ys) (L ⧺ [ x ]) (σ ⧺ ys)
 
-bfs-traversal : ∀ { n } → graph[ S n ] → idx (S n) → list (idx (S n))
-bfs-traversal G ι₀ = bfs-traversal' G [ ι₀ ] []
+bfs-traverse : ∀ { n } → graph[ S n ] → idx (S n) → list (idx (S n))
+bfs-traverse G ι₀ = bfs-traverse' G [ ι₀ ] [] [ ι₀ ]
 
+{--  FUN STUFF, PUT ASIDE FOR NOW
 -- dijkstra work
-
-min : ∀ {n : ℕ} → list (idx n) → (idx n) → (idx n) → (idx n) 
-min l x y with top x <? top y
+min : ∀ {n : ℕ} → list (idx n) → (idx n) → (idx n) → (idx n)
+min l x y with idxval x <? idxval y
 … | [<] = x
 … | [≥] = y
 
@@ -70,10 +71,8 @@ foldr : ∀ {n} {A B : Set} → (A → B → B) → B → vec[ n ] A → B
 foldr f z [] = z
 foldr f z (x ∷ xs) = f x (foldr f z xs)
 
-closest-neighbor : ∀ {n} → list (idx n) → idx n 
+closest-neighbor : ∀ {n} → list (idx n) → idx n
 closest-neighbor xs = {!!}
-
-{--  FUN STUFF, PUT ASIDE FOR NOW
 
 Dgraph[_] : ℕ → Set
 Dgraph[ n ] = matrix[ n , n ] (ℕ ∧ ℕ)
@@ -146,25 +145,46 @@ _ = ↯
 _ : (𝕚 1 {3}) ≡ S Z
 _ = ↯
 
-_ : let n = (𝕚 0 {3}) in top n ≡ 0
+_ : let n = (𝕚 0 {3}) in idxval n ≡ 0
 _ = ↯
 
-_ : let n = (𝕚 2 {3}) in top n ≡ 2
+_ : let n = (𝕚 2 {3}) in idxval n ≡ 2
 _ = ↯
 
 _ : neighbors [ I , O , I ] ≡ [ Z , S (S Z) ]
 _ = ↯
 
-_ : neighbors [ O , I , I , O , O ] ≡ [ S Z , S (S Z) ]
+_ : filter-list [ (𝕚 0 {7}) , (𝕚 1 {7}) ] [ (𝕚 0 {7}) ] ≡ [ (𝕚 1 {7}) ]
+_ = ↯
+_ : lookup (𝕚 1 {7}) [ (𝕚 0 {7}) , (𝕚 1 {7}) ] ≡ I
+_ = ↯
+_ : lookup (𝕚 5 {7}) [ (𝕚 0 {7}) , (𝕚 1 {7}) ] ≡ O
+_ = ↯
+_ : neighbors [ O , I , I , O , O , O , O ]  ≡ [ S Z , S(S Z) ]
+_ = ↯
+_ : filter-list (neighbors [ I , O , O , I , I , O , O ] ) [ Z ] ≡ [ S(S(S Z)) , S(S(S(S Z))) ]
 _ = ↯
 
-topology1 : graph[ 5 ]
-topology1 = [ [ O , I , I , O , O ]
-            , [ I , O , I , I , O ]
-            , [ I , I , O , I , I ]
-            , [ O , I , I , O , I ]
-            , [ O , O , I , I , O ]
-            ]
+undirectedgraph1 : graph[ 5 ]
+undirectedgraph1 = [ [ O , I , I , O , O ]
+                 , [ I , O , I , I , O ]
+                 , [ I , I , O , I , I ]
+                 , [ O , I , I , O , I ]
+                 , [ O , O , I , I , O ]
+                 ]
+{-
+input: undirectedgraph1 0
+pass#     queue        result       seenlist += neighbors
+0:        [0]          []           [0]
+1:        [1,2]        [0]          [0,1,2]
+2:        [2,3]        [0,1]        [0,1,2,3]
+3:        [3,4]        [0,1,2]      [0,1,2,3,4]
+4:        [4]          [0,1,2,3]    [0,1,2,3,4]
+5:        []           [0,1,3,3,4]  [0,1,2,3,4]
+-}
+
+_ : bfs-traverse undirectedgraph1 Z ≡ [ Z , S Z , S(S Z) , S(S(S Z)) , S(S(S(S Z))) ]
+_ = ↯
 
 tree1 : graph[ 7 ]
 tree1 = [ [ O , I , I , O , O , O , O ]
@@ -173,5 +193,21 @@ tree1 = [ [ O , I , I , O , O , O , O ]
         , [ O , I , O , O , O , O , O ]
         , [ O , I , O , O , O , O , O ]
         , [ O , O , I , O , O , O , O ]
-        , [ O , O , I , O , O , O , O ] 
+        , [ O , O , I , O , O , O , O ]
         ]
+
+{-
+input: tree1, 0
+pass#     queue        result            seenlist
+0:        [0]          []                [0]
+1:        [1,2]        [0]               [0,1,2]
+2:        [2,3,4]      [0,1]             [0,1,2,3,4]
+3:        [3,4,5,6]    [0,1,2]           [0,1,2,3,4,5,6]
+4:        [4,5,6]      [0,1,2,3]         [0,1,2,3,4,5,6]
+5:        [5,6]        [0,1,2,3,4]       [0,1,2,3,4,5,6]
+6:        [6]          [0,1,2,3,4,5]     [0,1,2,3,4,5,6]
+7:        []           [0,1,2,3,4,5,6]   [0,1,2,3,4,5,6]
+-}
+
+_ : bfs-traverse tree1 Z ≡ [ Z , S Z , S(S Z), S(S(S Z)), S(S(S(S Z))), S(S(S(S(S Z)))), S(S(S(S(S(S Z))))) ]
+_ = ↯
