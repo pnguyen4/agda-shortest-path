@@ -93,9 +93,9 @@ bfs {n} G ι₀ ι₁ = let prev = bfs' G ι₀ ι₁ [ ι₀ ] [ ι₀ ] (const
   … | [] = bfs' G ι₀ ι₁ xs σ ρ
   … | ys = bfs' G ι₀ ι₁ (xs ⧺ ys) (σ ⧺ ys) (update-prevs ρ x ys)
 
-  -- Terminates when prev is target, aka when source is found. 
-  -- Value of prev[source] will always be target because source never gets passed into 
-  -- update-prevs due to the fact that seenlist starts with source and thus gets filtered. 
+  -- Terminates when prev is target, aka when source is found.
+  -- Value of prev[source] will always be target because source never gets passed into
+  -- update-prevs due to the fact that seenlist starts with source and thus gets filtered.
   return-path : vec[ S n ] (idx (S n)) → idx (S n) → list ℕ → list ℕ
   return-path prev ι res with idxval(prev #[ ι ]) ≡? idxval ι₁
   … | O = return-path prev (prev #[ ι ]) (idxval (prev #[ ι ]) ∷ res)
@@ -154,11 +154,14 @@ pass#     queue        result            seenlist
 -}
 _ : bfs-traverse tree1 Z ≡ [ 𝕚 0 , 𝕚 1 , 𝕚 2 , 𝕚 3 , 𝕚 4 , 𝕚 5 , 𝕚 6 ]
 _ = ↯
--- find path from 0 to 6
-_ : bfs tree1 Z (𝕚 6) ≡ [ 0 , 2 , 6 ]
-_ = ↯
--- find path from 0 to itself
+-- find path from 0 to itself, no hop
 _ : bfs tree1 Z Z ≡ [ 0 ]
+_ = ↯
+-- find path from 0 to 2, one hop
+_ : bfs tree1 Z (𝕚 2) ≡ [ 0 , 2 ]
+_ = ↯
+-- find path from 0 to 2, two hops
+_ : bfs tree1 Z (𝕚 6) ≡ [ 0 , 2 , 6 ]
 _ = ↯
 
 undirectedgraph1 : graph[ 5 ]
@@ -201,58 +204,21 @@ _ = ↯
 _ : bfs undirectedgraph2 Z (𝕚 5) ≡ [ 0 , 1 , 4 , 5 ]
 _ = ↯
 
-
-
-
 -- Fundamental idea of PROVING BFS finds shortest path:
 --
 -- Shortest path to node starting from itself is through itself                                  [dist = 0]
 -- Shortest path to unweigted adjacent node is to that node.                                     [dist = 1]
--- Shortest path from u to v : (path from u to neighbor of v, with dist d) + (neighbor v to v)   [dist = d+1]
+-- Shortest path from u to v : (shortest path from u to neighbor of v, with dist d) + (neighbor v to v)   [dist = d+1]
 -- INDUCTION on d
 
-
-
-
-
-
-
-{--  FUN STUFF, PUT ASIDE FOR NOW
--- standard (weighted) dijkstra
-min : ∀ {n : ℕ} → list (idx n) → (idx n) → (idx n) → (idx n)
-min l x y with idxval x <? idxval y
-… | [<] = x
-… | [≥] = y
-
-foldr : ∀ {n} {A B : Set} → (A → B → B) → B → vec[ n ] A → B
-foldr f z [] = z
-foldr f z (x ∷ xs) = f x (foldr f z xs)
-
-closest-neighbor : ∀ {n} → list (idx n) → idx n
-closest-neighbor xs = {!!}
-
-Dgraph[_] : ℕ → Set
-Dgraph[ n ] = matrix[ n , n ] (ℕ ∧ ℕ)
-
--- tuple containing node id and edge weight
-Dentry : ∀ {n} → (m : ℕ) → vec[ n ] ℕ  → vec[ n ] (ℕ ∧ ℕ)
-Dentry m [] = []
-Dentry m (x ∷ xs) = ⟨ m , x ⟩ ∷ Dentry (S m) xs
-
-network : Dgraph[ 7 ]
-network = let ∞ = 9999 in        -- 💩 --
-          [ Dentry Z [ 0 , 4 , 3 , 7 , ∞ , ∞ , ∞ ]
-          , Dentry Z [ 4 , 0 , ∞ , 1 , ∞ , 5 , ∞ ]
-          , Dentry Z [ 3 , ∞ , 0 , 3 , 5 , ∞ , ∞ ]
-          , Dentry Z [ 7 , 1 , 3 , 0 , 2 , 2 , 7 ]
-          , Dentry Z [ ∞ , ∞ , 5 , 2 , 0 , ∞ , 2 ]
-          , Dentry Z [ ∞ , 5 , ∞ , 2 , ∞ , 0 , 5 ]
-          , Dentry Z [ ∞ , ∞ , ∞ , 7 , 2 , 5 , 0 ]
-          ]
-
-dijkstra' : ∀ {n} → idx n → Dgraph[ n ] → vec[ n ] ℕ → list ℕ → vec[ n ] ℕ
-dijkstra' ι₀ G dist R = {!!}
-
---dijkstra : ∀ {n} → idx n → Dgraph[ n ] → vec[ n ] ℕ
---dijkstra {n} ι₀ G = dijkstra' ι₀ G (G #[ ι₀ ]) []
---}
+{- IDEAPAD
+1. v is reachable from u if bfs G u v contains v
+2. perhaps even showing that shortest-path(s to t) = (s to neighbor) ++ shortest-path(neighbor to t)
+3.
+bfs G i1 i2 returns list i1...i2
+if (bfs G u v) contains v:
+  if i1=i2 and path=[i1] then it is a shortest-path
+  if i1≢i2 and path=[i1,i2] then it is a shortest-path
+  if i1≢i2 and path=[i1,...,x,i2] assume bfs G i1 x is shortest path
+     then show (bfs G i1 x) + (x,i2) is shortest path frcom i1 to i2
+-}
